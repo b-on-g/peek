@@ -1,9 +1,9 @@
 // Peek, isolated world. Разворачивает превью в списке диалогов ВК.
 //
 // Ставка на то, что вёрстка ВК будет меняться, поэтому по классам ничего не ищем.
-// Строку диалога находим по ссылке на /im, а само превью — по вычисленным стилям:
-// берём тот элемент, который браузер реально обрезает. Если ничего не нашли,
-// расширение молча ничего не делает и страницу не портит.
+// Строку диалога находим как повторяющийся элемент списка, а само превью — по
+// вычисленным стилям: берём тот элемент, который браузер реально обрезает.
+// Если ничего не нашли, расширение молча ничего не делает и страницу не портит.
 
 ( function () {
 	'use strict'
@@ -56,7 +56,6 @@
 		if ( !root ) return
 		root.classList.toggle( 'peek_on', !!cfg.on )
 		root.style.setProperty( '--peek-lines', String( cfg.lines ) )
-		root.style.setProperty( '--peek-line-clamp', String( cfg.lines ) )
 	}
 
 	// --- токен из page world -------------------------------------------------
@@ -64,8 +63,10 @@
 	window.addEventListener( 'message', event => {
 		if ( event.source !== window ) return
 		const msg = event.data
-		if ( !msg || msg.__peek !== 'token' || !msg.token ) return
-		try { chrome.runtime.sendMessage( { type: 'peek_token', token: msg.token } ) } catch ( e ) {}
+		if ( !msg || msg.__peek !== 'auth' || !msg.token ) return
+		try {
+			chrome.runtime.sendMessage( { type: 'peek_auth', token: msg.token, host: msg.host, v: msg.v } )
+		} catch ( e ) {}
 	} )
 
 	// --- поиск строк диалогов ------------------------------------------------
@@ -74,32 +75,86 @@
 		return location.pathname === '/im' || location.pathname.startsWith( '/im/' )
 	}
 
+	// Кандидат в строку — элемент списка. Поднимаемся от него до уровня, на котором
+	// у элемента появляются братья: ВК заворачивает каждый listitem в собственную
+	// обёртку виртуального скролла, и без подъёма все «группы» будут по одному элементу.
 	function rows() {
+
 		const groups = new Map()
 
-		for ( const link of document.querySelectorAll( 'a[href*="/im"]' ) ) {
-			if ( !peer_of( link.getAttribute( 'href' ) ) ) continue
-			const row = link.closest( 'li, [role="listitem"], [role="option"]' ) || link
+		const candidates = [
+			...document.querySelectorAll( '[role="listitem"], [data-itemkey], li' ),
+			// старая вёрстка вк.com, где строка диалога — обычная ссылка
+			...[ ...document.querySelectorAll( 'a[href*="/im"]' ) ].filter( link => peer_of_link( link ) ),
+		]
+
+		for ( const item of candidates ) {
+
+			let row = item
+			while (
+				row.parentElement
+				&& row.parentElement !== document.body
+				&& row.parentElement.children.length < 3
+			) row = row.parentElement
+
 			const parent = row.parentElement
 			if ( !parent ) continue
+
 			let group = groups.get( parent )
 			if ( !group ) groups.set( parent, group = new Set() )
 			group.add( row )
 		}
 
 		let best = null
+		let best_area = 0
+
 		for ( const group of groups.values() ) {
-			if ( !best || group.size > best.size ) best = group
+			if ( group.size < 3 ) continue
+			let area = 0
+			for ( const row of group ) {
+				const box = row.getBoundingClientRect()
+				area += box.width * box.height
+			}
+			if ( area > best_area ) {
+				best_area = area
+				best = group
+			}
 		}
 
-		return best && best.size >= 3 ? [ ...best ] : []
+		return best ? [ ...best ] : []
 	}
 
-	function peer_of( href ) {
-		if ( !href ) return 0
+	function peer_of_row( row ) {
 
-		const convo = /\/im\/convo\/(-?\d+)/.exec( href )
+		const keyed = row.matches( '[data-itemkey]' ) ? row : row.querySelector( '[data-itemkey]' )
+		const key = keyed && keyed.getAttribute( 'data-itemkey' )
+		const convo = key && /^convo_(-?\d+)$/.exec( key )
 		if ( convo ) return Number( convo[ 1 ] )
+
+		// Запасной вариант: id svg-маски аватарки несёт тот же peer_id.
+		const masked = row.querySelector( '[id*="Mask"]' )
+		const mask = masked && /Mask(-?\d+)/.exec( masked.id )
+		if ( mask ) return Number( mask[ 1 ] )
+
+		// Старая вёрстка со ссылками.
+		if ( row.matches( 'a[href]' ) ) {
+			const own = peer_of_link( row )
+			if ( own ) return own
+		}
+		for ( const link of row.querySelectorAll( 'a[href]' ) ) {
+			const peer = peer_of_link( link )
+			if ( peer ) return peer
+		}
+
+		return 0
+	}
+
+	function peer_of_link( link ) {
+
+		const href = link.getAttribute( 'href' ) || ''
+
+		const path = /\/im\/convo\/(-?\d+)/.exec( href )
+		if ( path ) return Number( path[ 1 ] )
 
 		const sel = /[?&]sel=(c?)(-?\d+)/.exec( href )
 		if ( sel ) return sel[ 1 ] ? 2000000000 + Number( sel[ 2 ] ) : Number( sel[ 2 ] )
@@ -116,24 +171,31 @@
 		return false
 	}
 
-	function own_text( el ) {
-		for ( const node of el.childNodes ) {
-			if ( node.nodeType === 3 && node.textContent.trim().length > 2 ) return true
-		}
-		return false
-	}
-
-	// Превью почти всегда последний обрезанный текстовый элемент строки:
-	// выше него имя собеседника, оно тоже обрезано, но идёт раньше.
+	// Обрезанных элементов в строке несколько: имя, превью, время, счётчик непрочитанного.
+	// Имя и превью растянуты на всю ширину строки, время и счётчик узкие, поэтому узкие
+	// отсекаем по ширине, а из оставшихся берём последний: превью всегда под именем.
 	function preview_of( row ) {
-		let found = null
+
+		const found = []
+		let wide = 0
+
 		for ( const el of row.querySelectorAll( '*' ) ) {
 			if ( el.dataset.peek ) continue
-			if ( !own_text( el ) ) continue
+			if ( !( el.textContent || '' ).trim() ) continue
 			if ( !clamped( el ) ) continue
-			found = el
+			const width = el.getBoundingClientRect().width
+			if ( !width ) continue
+			found.push( [ el, width ] )
+			if ( width > wide ) wide = width
 		}
-		return found
+
+		let best = null
+		for ( const [ el, width ] of found ) {
+			if ( width < wide * .6 ) continue
+			best = el
+		}
+
+		return best
 	}
 
 	function loosen( el, row ) {
@@ -163,7 +225,7 @@
 			const want = []
 
 			for ( const row of list ) {
-				let prev = row.querySelector( ':scope [data-peek="text"]' )
+				let prev = row.querySelector( '[data-peek="text"]' )
 				if ( !prev ) {
 					prev = preview_of( row )
 					if ( !prev ) continue
@@ -172,7 +234,7 @@
 
 				if ( cfg.messages < 2 ) continue
 
-				const peer = peer_from_row( row )
+				const peer = peer_of_row( row )
 				if ( !peer ) continue
 
 				const key = ( prev.textContent || '' ).trim()
@@ -188,18 +250,6 @@
 		}
 	}
 
-	function peer_from_row( row ) {
-		if ( row.matches( 'a[href]' ) ) {
-			const peer = peer_of( row.getAttribute( 'href' ) )
-			if ( peer ) return peer
-		}
-		for ( const link of row.querySelectorAll( 'a[href]' ) ) {
-			const peer = peer_of( link.getAttribute( 'href' ) )
-			if ( peer ) return peer
-		}
-		return 0
-	}
-
 	// --- дозагрузка истории --------------------------------------------------
 
 	function load( want ) {
@@ -207,7 +257,7 @@
 		if ( now - fetched_at < 1200 ) return
 		fetched_at = now
 
-		const peers = want.slice( 0, 50 ).map( item => item.peer )
+		const peers = want.slice( 0, 40 ).map( item => item.peer )
 
 		chrome.runtime.sendMessage( { type: 'peek_histories', peers, count: cfg.messages }, res => {
 			if ( chrome.runtime.lastError ) return
@@ -225,12 +275,13 @@
 	// --- отрисовка своего блока ---------------------------------------------
 
 	function render( row, prev, peer, data ) {
+
 		const items = ( data.items || [] ).slice( 0, cfg.messages ).reverse()
 		if ( items.length < 2 ) return
 
-		const key = items.map( msg => who_of( msg, data, peer ) + '' + text_of( msg ) ).join( '' )
+		const key = items.map( msg => who_of( msg, data, peer ) + '\n' + text_of( msg ) ).join( '\n' )
 
-		let box = row.querySelector( ':scope [data-peek="own"]' )
+		let box = row.querySelector( '[data-peek="own"]' )
 		if ( !box ) {
 			box = document.createElement( 'div' )
 			box.dataset.peek = 'own'
@@ -240,6 +291,11 @@
 			return
 		}
 
+		// Забираем оформление у самого ВК, чтобы блок не выбивался ни в светлой теме, ни в тёмной.
+		const style = getComputedStyle( prev )
+		box.style.color = style.color
+		box.style.font = style.font
+
 		box.dataset.peekKey = key
 		box.textContent = ''
 		for ( const msg of items ) box.appendChild( line_node( msg, data, peer ) )
@@ -248,9 +304,9 @@
 	}
 
 	function line_node( msg, data, peer ) {
+
 		const el = document.createElement( 'div' )
 		el.dataset.peek = 'line'
-		if ( !msg.out && msg.read_state === 0 ) el.dataset.peekUnread = '1'
 
 		const who = who_of( msg, data, peer )
 		if ( who ) {
@@ -265,6 +321,7 @@
 	}
 
 	function text_of( msg ) {
+
 		const text = String( msg.text || '' ).replace( /\s+/g, ' ' ).trim()
 		if ( text ) return text
 
@@ -277,6 +334,7 @@
 	}
 
 	function who_of( msg, data, peer ) {
+
 		if ( msg.out ) return 'Я'
 		if ( peer > 0 && peer < 2000000000 ) return '' // личка, имя и так в заголовке строки
 

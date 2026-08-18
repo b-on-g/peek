@@ -1,26 +1,47 @@
 // Peek, page world. Единственная задача — подсмотреть access_token, которым веб-клиент ВК
-// сам ходит в api.vk.com, и отдать его в isolated world через postMessage.
-// Токен никуда, кроме самого api.vk.com, не уезжает.
+// сам ходит в свой API, и отдать его в isolated world через postMessage.
+// Токен уходит только обратно в тот же API и никуда больше.
+//
+// Хост API у ВК не один: старый веб зовёт api.vk.com, новый мессенджер — web.api.vk.ru.
+// Поэтому смотрим на любой запрос с /method/ в пути и запоминаем хост вместе с токеном.
+// Запросы летят при загрузке страницы и при подгрузке списка, так что скрипт обязан
+// стоять на document_start, иначе первую пачку он пропустит.
 
 ( function () {
 	'use strict'
 
 	let last = ''
 
-	function send( token ) {
-		if ( !token || token === last ) return
-		last = token
-		window.postMessage( { __peek: 'token', token }, location.origin )
+	function send( auth ) {
+		if ( !auth.token || auth.token === last ) return
+		last = auth.token
+		window.postMessage( { __peek: 'auth', token: auth.token, host: auth.host, v: auth.v }, location.origin )
 	}
 
-	function grab( str ) {
-		if ( typeof str !== 'string' ) return
-		const found = /[?&]access_token=([^&#\s"']+)/.exec( str )
-		if ( found ) send( decodeURIComponent( found[ 1 ] ) )
+	function params_of( body ) {
+		if ( typeof body === 'string' ) {
+			try { return new URLSearchParams( body ) } catch ( e ) { return null }
+		}
+		if ( body instanceof URLSearchParams ) return body
+		if ( typeof FormData !== 'undefined' && body instanceof FormData ) return body
+		return null
 	}
 
-	function is_api( url ) {
-		return typeof url === 'string' && url.includes( 'api.vk.com/method/' )
+	function grab( url, body ) {
+		try {
+			const target = new URL( url, location.href )
+			if ( !target.pathname.includes( '/method/' ) ) return
+
+			const token = target.searchParams.get( 'access_token' )
+				|| ( params_of( body ) && params_of( body ).get( 'access_token' ) )
+			if ( !token ) return
+
+			send( {
+				token,
+				host: target.host,
+				v: target.searchParams.get( 'v' ) || '',
+			} )
+		} catch ( e ) {}
 	}
 
 	const open_orig = XMLHttpRequest.prototype.open
@@ -32,28 +53,15 @@
 	}
 
 	XMLHttpRequest.prototype.send = function ( body ) {
-		try {
-			if ( is_api( this.__peek_url ) ) {
-				grab( this.__peek_url )
-				if ( typeof body === 'string' ) grab( '&' + body )
-				if ( body instanceof URLSearchParams ) grab( '&' + body.toString() )
-			}
-		} catch ( e ) {}
+		if ( this.__peek_url ) grab( this.__peek_url, body )
 		return send_orig.apply( this, arguments )
 	}
 
 	const fetch_orig = window.fetch
 
 	window.fetch = function ( input, init ) {
-		try {
-			const url = typeof input === 'string' ? input : ( input && input.url ) || ''
-			if ( is_api( url ) ) {
-				grab( url )
-				const body = init && init.body
-				if ( typeof body === 'string' ) grab( '&' + body )
-				if ( body instanceof URLSearchParams ) grab( '&' + body.toString() )
-			}
-		} catch ( e ) {}
+		const url = typeof input === 'string' ? input : ( input && input.url ) || ''
+		if ( url ) grab( url, init && init.body )
 		return fetch_orig.apply( this, arguments )
 	}
 } )()

@@ -1,4 +1,8 @@
-/* Peek. Все правила живут под .peek_on, чтобы выключение возвращало штатный вид ВК. */
+/* Peek. Все правила живут под .peek_on, чтобы выключение возвращало штатный вид ВК.
+   Ничего, кроме размеченных нами элементов, не трогаем.
+
+   Про !important: ВК задаёт превью фиксированную высоту строкой в своём бандле,
+   переспорить это можно только так. */
 
 .peek_on [data-peek="text"] {
 	display: -webkit-box !important;
@@ -8,26 +12,34 @@
 	white-space: normal !important;
 	overflow: hidden !important;
 	text-overflow: clip !important;
-	max-height: none !important;
+	text-align: start !important;
 	height: auto !important;
+	max-height: none !important;
+	contain: none !important;
 }
 
-/* Родители превью держат фиксированную высоту, иначе лишние строки просто обрежутся. */
+/* Родители превью держат фиксированную высоту, поэтому их тоже приходится отпускать.
+   contain: strict у строки диалога схлопывает её в ноль, как только снимаешь height,
+   а text-align наследуется от кнопки-строки и без него текст едет по центру.
+   grid-template-rows у ВК жёсткие (23px 23px), автоматические берутся из grid-template-areas. */
 .peek_on [data-peek="loose"] {
 	height: auto !important;
 	max-height: none !important;
-	min-height: 0 !important;
 	overflow: visible !important;
 	white-space: normal !important;
-	align-items: flex-start !important;
+	text-overflow: clip !important;
+	text-align: start !important;
+	-webkit-line-clamp: none !important;
+	line-clamp: none !important;
+	contain: none !important;
+	grid-template-rows: none !important;
 }
 
 .peek_on [data-peek="row"] {
 	height: auto !important;
 	max-height: none !important;
-	min-height: 0 !important;
 	overflow: visible !important;
-	align-items: flex-start !important;
+	contain: none !important;
 }
 
 /* Когда показываем несколько сообщений, штатное превью прячем, но из DOM не трогаем:
@@ -39,29 +51,23 @@
 .peek_on [data-peek="own"] {
 	display: flex !important;
 	flex-direction: column !important;
+	flex: 1 1 auto !important;
 	gap: 2px !important;
-	width: 100% !important;
 	min-width: 0 !important;
 	overflow: hidden !important;
-	font-size: 13px;
-	line-height: 16px;
-	color: var( --peek-fg, #626d7a );
+	text-align: start !important;
 }
 
 .peek_on [data-peek="line"] {
 	display: -webkit-box !important;
 	-webkit-box-orient: vertical !important;
-	-webkit-line-clamp: var( --peek-line-clamp, 5 ) !important;
-	line-clamp: var( --peek-line-clamp, 5 ) !important;
+	-webkit-line-clamp: var( --peek-lines, 5 ) !important;
+	line-clamp: var( --peek-lines, 5 ) !important;
 	overflow: hidden !important;
 	white-space: normal !important;
 	word-break: break-word !important;
 }
 
-.peek_on [data-peek="line"][data-peek-unread="1"] {
-	color: var( --peek-fg-strong, #2c2d2e );
-}
-
 .peek_on [data-peek="who"] {
-	opacity: .65;
+	opacity: .7;
 }
