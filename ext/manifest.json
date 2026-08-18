@@ -1,0 +1,48 @@
+{
+	"manifest_version": 3,
+	"name": "Peek — больше строк в списке диалогов ВК",
+	"short_name": "Peek",
+	"description": "Разворачивает превью в списке диалогов ВК: больше строк текста и несколько последних сообщений.",
+	"version": "0.1.0",
+	"action": {
+		"default_title": "Peek",
+		"default_popup": "popup.html",
+		"default_icon": {
+			"16": "icon-16.png",
+			"48": "icon-48.png",
+			"128": "icon-128.png"
+		}
+	},
+	"icons": {
+		"16": "icon-16.png",
+		"48": "icon-48.png",
+		"128": "icon-128.png"
+	},
+	"background": {
+		"service_worker": "background.js"
+	},
+	"permissions": [ "storage" ],
+	"host_permissions": [
+		"*://vk.ru/*",
+		"*://*.vk.ru/*",
+		"*://vk.com/*",
+		"*://*.vk.com/*",
+		"https://api.vk.com/*"
+	],
+	"content_scripts": [
+		{
+			"matches": [ "*://vk.ru/*", "*://*.vk.ru/*", "*://vk.com/*", "*://*.vk.com/*" ],
+			"js": [ "inject.js" ],
+			"world": "MAIN",
+			"run_at": "document_start",
+			"all_frames": false
+		},
+		{
+			"matches": [ "*://vk.ru/*", "*://*.vk.ru/*", "*://vk.com/*", "*://*.vk.com/*" ],
+			"js": [ "content.js" ],
+			"css": [ "content.css" ],
+			"run_at": "document_start",
+			"all_frames": false
+		}
+	]
+}

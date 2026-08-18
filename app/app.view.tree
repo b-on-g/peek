@@ -1,0 +1,87 @@
+$bog_peek_app $mol_page
+	title \Peek
+	tools /
+		<= Source $mol_link_source
+			uri \https://github.com/b-on-g/peek
+		<= Theme_toggle $bog_theme_toggle
+			theme_auto <= Theme
+	plugins /
+		<= Theme $bog_theme_auto
+			theme_light \$mol_theme_calm_light
+			theme_dark \$mol_theme_calm_dark
+			themes /
+				\$mol_theme_calm_light
+				\$mol_theme_calm_dark
+	body /
+		<= Content $mol_list
+			rows /
+				<= Hero $mol_list
+					rows /
+						<= Hero_title $mol_text
+							text \# Список диалогов ВК, в котором видно, о чём речь
+						<= Hero_lead $mol_text
+							text \ВКонтакте показывает одну обрезанную строку последнего сообщения. Peek разворачивает превью: больше строк текста и несколько последних сообщений сразу. Заходить в диалог, чтобы понять, о чём он, больше не нужно.
+						<= Hero_actions $mol_row
+							sub /
+								<= Download $mol_link
+									uri \peek.zip
+									sub / \Скачать расширение
+								<= Repo $mol_link
+									uri \https://github.com/b-on-g/peek
+									sub / \Исходники на GitHub
+				<= Demo $mol_row
+					sub /
+						<= Before $mol_list
+							rows /
+								<= Before_cap $mol_view sub / \Было
+								<= Before_row $mol_row
+									sub /
+										<= Before_ava $mol_view sub /
+										<= Before_body $mol_list
+											rows /
+												<= Before_name $mol_view sub / \Леонид Фирстов
+												<= Before_text $mol_view sub / \по договору всё согласовали, отправляю скан на подпись сегодня вечером
+						<= After $mol_list
+							rows /
+								<= After_cap $mol_view sub / \Стало
+								<= After_row $mol_row
+									sub /
+										<= After_ava $mol_view sub /
+										<= After_body $mol_list
+											rows /
+												<= After_name $mol_view sub / \Леонид Фирстов
+												<= After_text_1 $mol_view sub / \Я: скинул договор, посмотрите когда будет минута
+												<= After_text_2 $mol_view sub / \по договору всё согласовали, отправляю скан на подпись сегодня вечером
+				<= Install $mol_text
+					text \
+						\## Как поставить
+						\
+						\Расширения пока нет в Chrome Web Store, поэтому ставится вручную. Это три минуты и делается один раз.
+						\
+						\1. Скачайте архив и распакуйте его в любую папку, которую не будете удалять.
+						\2. Откройте `chrome://extensions` и включите «Режим разработчика» в правом верхнем углу.
+						\3. Нажмите «Загрузить распакованное расширение» и укажите распакованную папку.
+						\4. Откройте [vk.ru/im](https://vk.ru/im) и обновите страницу.
+						\
+						\Работает в Chrome, Arc, Edge, Яндекс.Браузере и других браузерах на Chromium.
+				<= Options $mol_text
+					text \
+						\## Настройки
+						\
+						\Клик по иконке расширения открывает два ползунка.
+						\
+						\**Строк** — сколько строк текста показывать в одном сообщении. По умолчанию 5.
+						\
+						\**Последних сообщений** — сколько последних сообщений диалога показывать. По умолчанию 2. Поставьте 1, если хватает одного, но хочется видеть его целиком.
+						\
+						\Общий тумблер выключает расширение и возвращает штатный вид ВК, не удаляя его.
+				<= Privacy $mol_text
+					text \
+						\## Что с данными
+						\
+						\Ничего никуда не уходит. Расширение работает только на страницах ВК, настройки лежат в браузере, сервера у проекта нет. Прошлые сообщения берутся тем же способом, каким их берёт сам сайт ВК, и дальше вкладки не уезжают.
+				<= Next $mol_text
+					text \
+						\## Что дальше
+						\
+						\Следующий шаг — ответ прямо из списка диалогов, не открывая переписку. Пока описан [в PRD](https://github.com/b-on-g/peek/blob/main/PRD.md), в коде ещё нет.

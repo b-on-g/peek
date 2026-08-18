@@ -1,0 +1,67 @@
+/* Peek. Все правила живут под .peek_on, чтобы выключение возвращало штатный вид ВК. */
+
+.peek_on [data-peek="text"] {
+	display: -webkit-box !important;
+	-webkit-box-orient: vertical !important;
+	-webkit-line-clamp: var( --peek-lines, 5 ) !important;
+	line-clamp: var( --peek-lines, 5 ) !important;
+	white-space: normal !important;
+	overflow: hidden !important;
+	text-overflow: clip !important;
+	max-height: none !important;
+	height: auto !important;
+}
+
+/* Родители превью держат фиксированную высоту, иначе лишние строки просто обрежутся. */
+.peek_on [data-peek="loose"] {
+	height: auto !important;
+	max-height: none !important;
+	min-height: 0 !important;
+	overflow: visible !important;
+	white-space: normal !important;
+	align-items: flex-start !important;
+}
+
+.peek_on [data-peek="row"] {
+	height: auto !important;
+	max-height: none !important;
+	min-height: 0 !important;
+	overflow: visible !important;
+	align-items: flex-start !important;
+}
+
+/* Когда показываем несколько сообщений, штатное превью прячем, но из DOM не трогаем:
+   удалять узлы React'а нельзя, он падает на следующем рендере. */
+.peek_on [data-peek="text"][data-peek-hidden="1"] {
+	display: none !important;
+}
+
+.peek_on [data-peek="own"] {
+	display: flex !important;
+	flex-direction: column !important;
+	gap: 2px !important;
+	width: 100% !important;
+	min-width: 0 !important;
+	overflow: hidden !important;
+	font-size: 13px;
+	line-height: 16px;
+	color: var( --peek-fg, #626d7a );
+}
+
+.peek_on [data-peek="line"] {
+	display: -webkit-box !important;
+	-webkit-box-orient: vertical !important;
+	-webkit-line-clamp: var( --peek-line-clamp, 5 ) !important;
+	line-clamp: var( --peek-line-clamp, 5 ) !important;
+	overflow: hidden !important;
+	white-space: normal !important;
+	word-break: break-word !important;
+}
+
+.peek_on [data-peek="line"][data-peek-unread="1"] {
+	color: var( --peek-fg-strong, #2c2d2e );
+}
+
+.peek_on [data-peek="who"] {
+	opacity: .65;
+}

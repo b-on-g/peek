@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+	<meta charset="utf-8" />
+	<title>Peek</title>
+	<link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+	<header class="head">
+		<img class="logo" src="icon-48.png" width="28" height="28" alt="" />
+		<div>
+			<div class="name">Peek</div>
+			<div class="note">Список диалогов ВК</div>
+		</div>
+		<label class="switch">
+			<input type="checkbox" id="on" />
+			<span class="track"></span>
+		</label>
+	</header>
+
+	<label class="field">
+		<span class="label">Строк в сообщении <output id="lines_out">5</output></span>
+		<input type="range" id="lines" min="1" max="10" step="1" />
+	</label>
+
+	<label class="field">
+		<span class="label">Последних сообщений <output id="messages_out">2</output></span>
+		<input type="range" id="messages" min="1" max="5" step="1" />
+	</label>
+
+	<p class="hint" id="hint">Настройки применяются сразу, страницу перезагружать не нужно.</p>
+
+	<script src="popup.js"></script>
+
+</body>
+</html>
