@@ -29,6 +29,7 @@ jobs:
                   cp -r bog/peek/ext/. /tmp/pack/peek/
                   mkdir -p bog/peek/app/-
                   ( cd /tmp/pack && zip -r "$GITHUB_WORKSPACE/bog/peek/app/-/peek.zip" peek )
+                  cp bog/peek/privacy.html bog/peek/app/-/privacy.html
 
             - uses: hyoo-ru/gh-deploy@v4.4.1
               if: github.ref == 'refs/heads/main'
