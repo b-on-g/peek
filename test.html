@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru" mol_view_root>
+	<head>
+		<meta charset="utf-8" />
+		<meta lang="ru" />
+		<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1" />
+		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<title>Peek — больше строк в списке диалогов ВК</title>
+		<link href="bog/peek/assets/logo.svg" rel="icon" />
+		<meta name="description" content="Расширение для Chrome: в списке диалогов ВК видно несколько последних сообщений целиком, а не одну обрезанную строку." />
+		<meta property="og:title" content="Peek — больше строк в списке диалогов ВК" />
+		<meta property="og:type" content="website" />
+		<meta property="og:description" content="Расширение для Chrome: в списке диалогов ВК видно несколько последних сообщений целиком, а не одну обрезанную строку." />
+		<meta property="og:site_name" content="Peek" />
+		<meta property="og:url" content="https://b-on-g.github.io/peek/" />
+		<link rel="manifest" href="manifest.json" />
+	</head>
+	<body mol_view_root>
+		<div mol_view_root="$bog_peek_app"></div>
+		<script src="web.js"></script>
+	
+				<script src="/mol/build/client/client.js" charset="utf-8"></script>
+				<script src="web.test.js" charset="utf-8"></script>
+				<script>
+					addEventListener( 'load', ()=> setTimeout( ()=> {
+						const audit =  document.createElement( 'script' )
+						audit.src = 'web.audit.js'
+						document.head.appendChild( audit )
+					}, 500 ) )
+				</script>
+				</body>
+</html>
