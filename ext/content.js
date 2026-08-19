@@ -109,19 +109,43 @@
 		let best_area = 0
 
 		for ( const group of groups.values() ) {
+
 			if ( group.size < 3 ) continue
+
+			// Внутри открытого диалога лента сообщений — тоже список, и площадью она
+			// больше списка диалогов. Отличаем по тому, что у строки диалога есть peer:
+			// у сообщения в ленте его нет, и трогать её мы не должны.
+			let convos = 0
 			let area = 0
 			for ( const row of group ) {
+				if ( conversational( row ) ) convos++
 				const box = row.getBoundingClientRect()
 				area += box.width * box.height
 			}
+
+			if ( convos < 3 || convos * 2 < group.size ) continue
+
 			if ( area > best_area ) {
 				best_area = area
 				best = group
 			}
 		}
 
-		return best ? [ ...best ] : []
+		return best ? [ ...best ].filter( conversational ) : []
+	}
+
+	function conversational( row ) {
+
+		const keyed = row.matches( '[data-itemkey]' ) ? row : row.querySelector( '[data-itemkey]' )
+		const key = keyed && keyed.getAttribute( 'data-itemkey' )
+		if ( key && /^convo_-?\d+$/.test( key ) ) return true
+
+		if ( row.matches( 'a[href]' ) && peer_of_link( row ) ) return true
+		for ( const link of row.querySelectorAll( 'a[href]' ) ) {
+			if ( peer_of_link( link ) ) return true
+		}
+
+		return false
 	}
 
 	function peer_of_row( row ) {
@@ -232,10 +256,21 @@
 					loosen( prev, row )
 				}
 
-				if ( cfg.messages < 2 ) continue
+				if ( cfg.messages < 2 ) {
+					drop_own_in( row )
+					continue
+				}
 
 				const peer = peer_of_row( row )
 				if ( !peer ) continue
+
+				// Виртуальный скролл переиспользует узлы под другие диалоги: если строка
+				// сменила собеседника, старый блок надо убрать сразу, а не показывать
+				// чужие сообщения до прихода новых.
+				if ( row.dataset.peekPeer !== String( peer ) ) {
+					row.dataset.peekPeer = String( peer )
+					drop_own_in( row )
+				}
 
 				const key = ( prev.textContent || '' ).trim()
 				const hit = cache.get( peer )
@@ -277,11 +312,24 @@
 	function render( row, prev, peer, data ) {
 
 		const items = ( data.items || [] ).slice( 0, cfg.messages ).reverse()
-		if ( items.length < 2 ) return
+
+		// В диалоге всего одно сообщение — показывать нечего, возвращаем штатное превью.
+		if ( items.length < 2 ) {
+			drop_own_in( row )
+			return
+		}
 
 		const key = items.map( msg => who_of( msg, data, peer ) + '\n' + text_of( msg ) ).join( '\n' )
 
 		let box = row.querySelector( '[data-peek="own"]' )
+
+		// Реакт мог перерисовать превью и оставить наш блок висеть рядом с новым узлом.
+		// Тогда видно и превью, и наш блок — те самые дубли. Перепривязываем.
+		if ( box && box.previousElementSibling !== prev ) {
+			box.remove()
+			box = null
+		}
+
 		if ( !box ) {
 			box = document.createElement( 'div' )
 			box.dataset.peek = 'own'
@@ -289,6 +337,10 @@
 		} else if ( box.dataset.peekKey === key ) {
 			prev.dataset.peekHidden = '1'
 			return
+		}
+
+		for ( const extra of row.querySelectorAll( '[data-peek="own"]' ) ) {
+			if ( extra !== box ) extra.remove()
 		}
 
 		// Забираем оформление у самого ВК, чтобы блок не выбивался ни в светлой теме, ни в тёмной.
@@ -347,11 +399,15 @@
 		return ''
 	}
 
+	function drop_own_in( root ) {
+		for ( const box of root.querySelectorAll( '[data-peek="own"]' ) ) box.remove()
+		for ( const el of root.querySelectorAll( '[data-peek-hidden]' ) ) delete el.dataset.peekHidden
+	}
+
 	function drop_own() {
 		ours = true
 		try {
-			for ( const box of document.querySelectorAll( '[data-peek="own"]' ) ) box.remove()
-			for ( const el of document.querySelectorAll( '[data-peek-hidden]' ) ) delete el.dataset.peekHidden
+			drop_own_in( document )
 		} finally {
 			ours = false
 		}
