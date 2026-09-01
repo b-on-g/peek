@@ -2005,6 +2005,29 @@ declare namespace $ {
 
 //# sourceMappingURL=text.view.tree.d.ts.map
 declare namespace $ {
+    class $mol_storage extends $mol_object2 {
+        /** Is storage a long term. */
+        static persisted(next?: boolean): boolean;
+        /** Total storage quota in bytes. */
+        static total(): number;
+        /** Total storage usage in bytes. */
+        static used(): number;
+        /** Minimum available free space in bytes. */
+        static free(): number;
+        /** Fulfillness of storage. */
+        static portion(): number;
+        /**
+         * Fulfillness logarithmic level.
+         * `0` - empty
+         * `1` - half free
+         * `2` - quart free
+         * `Infinity` - fulfilled
+         */
+        static level(): number;
+    }
+}
+
+declare namespace $ {
     let $mol_mem_persist: typeof $mol_wire_solid;
 }
 
@@ -2033,10 +2056,14 @@ declare namespace $ {
 }
 
 declare namespace $ {
-    class $mol_storage extends $mol_object2 {
+    class $mol_storage_web extends $mol_storage {
         static native(): StorageManager;
         static persisted(next?: boolean, cache?: 'cache'): boolean;
         static estimate(): StorageEstimate;
+        static total(): number;
+        static used(): number;
+        static free(): number;
+        static portion(): number;
         static dir(): FileSystemDirectoryHandle;
     }
 }
@@ -2360,6 +2387,7 @@ declare namespace $ {
     class $mol_locale extends $mol_object {
         static lang_default(): string;
         static lang(next?: string): string;
+        static langs_rtl(): string[];
         static direction(): "ltr" | "rtl";
         static source(lang: string): any;
         static texts(lang: string, next?: $mol_locale_dict): $mol_locale_dict;
@@ -5057,30 +5085,30 @@ declare namespace $ {
 		,
 		ReturnType< $mol_view['sub'] >
 	>
-	type $mol_view__sub_bog_peek_app_25 = $mol_type_enforce<
-		readonly(any)[]
-		,
-		ReturnType< $mol_view['sub'] >
-	>
-	type $mol_list__rows_bog_peek_app_26 = $mol_type_enforce<
+	type $mol_list__rows_bog_peek_app_25 = $mol_type_enforce<
 		readonly(any)[]
 		,
 		ReturnType< $mol_list['rows'] >
 	>
-	type $mol_row__sub_bog_peek_app_27 = $mol_type_enforce<
+	type $mol_row__sub_bog_peek_app_26 = $mol_type_enforce<
 		readonly(any)[]
 		,
 		ReturnType< $mol_row['sub'] >
 	>
-	type $mol_list__rows_bog_peek_app_28 = $mol_type_enforce<
+	type $mol_list__rows_bog_peek_app_27 = $mol_type_enforce<
 		readonly(any)[]
 		,
 		ReturnType< $mol_list['rows'] >
 	>
-	type $mol_row__sub_bog_peek_app_29 = $mol_type_enforce<
+	type $mol_row__sub_bog_peek_app_28 = $mol_type_enforce<
 		readonly(any)[]
 		,
 		ReturnType< $mol_row['sub'] >
+	>
+	type $mol_text__text_bog_peek_app_29 = $mol_type_enforce<
+		string
+		,
+		ReturnType< $mol_text['text'] >
 	>
 	type $mol_text__text_bog_peek_app_30 = $mol_type_enforce<
 		string
@@ -5097,12 +5125,7 @@ declare namespace $ {
 		,
 		ReturnType< $mol_text['text'] >
 	>
-	type $mol_text__text_bog_peek_app_33 = $mol_type_enforce<
-		string
-		,
-		ReturnType< $mol_text['text'] >
-	>
-	type $mol_list__rows_bog_peek_app_34 = $mol_type_enforce<
+	type $mol_list__rows_bog_peek_app_33 = $mol_type_enforce<
 		readonly(any)[]
 		,
 		ReturnType< $mol_list['rows'] >
@@ -5127,8 +5150,7 @@ declare namespace $ {
 		After_cap( ): $mol_view
 		After_ava( ): $mol_view
 		After_name( ): $mol_view
-		After_text_1( ): $mol_view
-		After_text_2( ): $mol_view
+		After_text( ): $mol_view
 		After_body( ): $mol_list
 		After_row( ): $mol_row
 		After( ): $mol_list
