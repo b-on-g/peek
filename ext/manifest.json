@@ -3,7 +3,7 @@
 	"name": "Peek — больше строк в списке диалогов ВК",
 	"short_name": "Peek",
 	"description": "Разворачивает превью в списке диалогов ВК: сообщение видно целиком, а не одной обрезанной строкой.",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"action": {
 		"default_title": "Peek",
 		"default_popup": "popup.html",
