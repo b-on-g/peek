@@ -108,5 +108,3 @@ body:has( #on:not( :checked ) ) .field {
 	line-height: 1.45;
 	color: var( --fg-dim );
 }
-
-.hint[ data-warn="1" ] { color: #e64646; }

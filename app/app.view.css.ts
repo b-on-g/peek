@@ -166,8 +166,7 @@ namespace $ {
 			textOverflow: 'ellipsis',
 		},
 
-		After_text_1: text,
-		After_text_2: text,
+		After_text: text,
 
 		Install: prose,
 		Options: prose,
